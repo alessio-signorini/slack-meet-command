@@ -92,5 +92,33 @@ module SlackMeet
       # Check if expiring within 5 minutes
       token.google_token_expiry < (Time.now + (5 * 60))
     end
+
+    # Refresh token if needed and return current access token
+    #
+    # @param slack_user_id [String] Slack user ID
+    # @param google_auth_client [GoogleAuthClient] Google OAuth client
+    # @return [String] Current valid access token
+    # @raise [TokenRefreshError] If refresh fails
+    def refresh_if_needed(slack_user_id, google_auth_client:)
+      token = find_by_slack_user(slack_user_id)
+      raise Errors::NotAuthenticatedError, 'No token found' unless token
+
+      if token_expiring_soon?(slack_user_id)
+        raise Errors::TokenRefreshError, 'No refresh token' unless token.google_refresh_token
+
+        result = google_auth_client.refresh_access_token(refresh_token: token.google_refresh_token)
+        
+        expires_at = Time.now + result[:expires_in]
+        update_access_token(
+          slack_user_id: slack_user_id,
+          access_token: result[:access_token],
+          expires_at: expires_at
+        )
+        
+        result[:access_token]
+      else
+        token.google_access_token
+      end
+    end
   end
 end

@@ -1,0 +1,49 @@
+# Environment
+.env
+
+# Ruby
+*.gem
+*.rbc
+.bundle
+vendor/bundle
+
+# Database
+*.sqlite3
+*.db
+db/*.sqlite3
+
+# Logs
+*.log
+log/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+
+# Testing
+coverage/
+.coverage
+
+# Temporary files
+tmp/
+temp/
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+test/
+specs.md
+
+# Development
+.devcontainer/
