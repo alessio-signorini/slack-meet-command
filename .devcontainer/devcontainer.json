@@ -1,0 +1,26 @@
+{
+  "name": "Slack Meet Command",
+  "image": "mcr.microsoft.com/devcontainers/ruby:3.2",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "postCreateCommand": "bundle install || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "rebornix.ruby",
+        "alexcvzz.vscode-sqlite",
+        "humao.rest-client"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.tabSize": 2
+      }
+    }
+  },
+  "forwardPorts": [9292],
+  "remoteEnv": {
+    "RACK_ENV": "development"
+  }
+}
