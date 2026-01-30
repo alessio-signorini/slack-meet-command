@@ -13,10 +13,11 @@ namespace :db do
   task :migrate do
     require 'sequel'
     require 'dotenv/load'
+    require 'fileutils'
+    require_relative 'db/connection'
     
-    db_url = ENV.fetch('DATABASE_URL', 'sqlite://db/development.sqlite3')
     Sequel.extension :migration
-    db = Sequel.connect(db_url)
+    db = SlackMeet::Database.connection
     
     Sequel::Migrator.run(db, 'db/migrations')
     puts 'Database migrations complete!'

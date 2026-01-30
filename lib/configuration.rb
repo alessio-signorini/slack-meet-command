@@ -1,4 +1,5 @@
 require 'json'
+require_relative './errors'
 
 module SlackMeet
   # Configuration loader for meeting settings.
@@ -50,13 +51,13 @@ module SlackMeet
       config_path = File.join(project_root, 'config.json')
 
       unless File.exist?(config_path)
-        raise ConfigurationError, "Configuration file not found: #{config_path}\n" \
-                                  "Please create config.json with meeting settings."
+        raise Errors::ConfigurationError, "Configuration file not found: #{config_path}\n" \
+                                          "Please create config.json with meeting settings."
       end
 
       JSON.parse(File.read(config_path))
     rescue JSON::ParserError => e
-      raise ConfigurationError, "Invalid JSON in config.json: #{e.message}"
+      raise Errors::ConfigurationError, "Invalid JSON in config.json: #{e.message}"
     end
 
     def parse_access_type(config_data)
@@ -87,17 +88,14 @@ module SlackMeet
 
     def validate!
       unless VALID_ACCESS_TYPES.include?(@access_type)
-        raise ConfigurationError, "Invalid access_type: #{@access_type}. " \
-                                  "Must be one of: #{VALID_ACCESS_TYPES.join(', ')}"
+        raise Errors::ConfigurationError, "Invalid access_type: #{@access_type}. " \
+                                          "Must be one of: #{VALID_ACCESS_TYPES.join(', ')}"
       end
 
       unless VALID_MODERATION_VALUES.include?(@moderation)
-        raise ConfigurationError, "Invalid moderation: #{@moderation}. " \
-                                  "Must be one of: #{VALID_MODERATION_VALUES.join(', ')}"
+        raise Errors::ConfigurationError, "Invalid moderation: #{@moderation}. " \
+                                          "Must be one of: #{VALID_MODERATION_VALUES.join(', ')}"
       end
     end
   end
-
-  # Base error class for configuration errors
-  class ConfigurationError < StandardError; end
 end

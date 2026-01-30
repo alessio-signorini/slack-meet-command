@@ -41,7 +41,7 @@ class Req010DefaultConfigTest < Minitest::Test
     # Verify file is gone
     refute File.exist?(config_path), "Config file should not exist"
 
-    error = assert_raises(SlackMeet::ConfigurationError) do
+    error = assert_raises(SlackMeet::Errors::ConfigurationError) do
       SlackMeet::Configuration.load
     end
 
@@ -102,7 +102,7 @@ class Req010DefaultConfigTest < Minitest::Test
   end
 
   def test_raises_on_invalid_access_type
-    error = assert_raises(SlackMeet::ConfigurationError) do
+    error = assert_raises(SlackMeet::Errors::ConfigurationError) do
       SlackMeet::Configuration.new('access_type' => 'INVALID')
     end
 
@@ -111,7 +111,7 @@ class Req010DefaultConfigTest < Minitest::Test
   end
 
   def test_raises_on_invalid_moderation
-    error = assert_raises(SlackMeet::ConfigurationError) do
+    error = assert_raises(SlackMeet::Errors::ConfigurationError) do
       SlackMeet::Configuration.new('moderation' => 'INVALID')
     end
 
