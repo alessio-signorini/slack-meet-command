@@ -4,7 +4,7 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": {}
   },
-  "postCreateCommand": "bundle install || true",
+  "postCreateCommand": "bundle install && bundle exec rake db:migrate && curl -L https://fly.io/install.sh | sh && echo 'export FLYCTL_INSTALL=\"/home/vscode/.fly\"' >> ~/.bashrc && echo 'export PATH=\"$FLYCTL_INSTALL/bin:$PATH\"' >> ~/.bashrc",
   "customizations": {
     "vscode": {
       "extensions": [
