@@ -70,13 +70,12 @@ module SlackMeet
     def build_space_config(config)
       space_config = {}
       
-      # Build config object
+      # Build config object (this is the SpaceConfig in the API)
       config_obj = {}
       config_obj[:accessType] = config[:access_type] if config[:access_type]
       config_obj[:moderation] = config[:moderation] if config[:moderation]
-      space_config[:config] = config_obj unless config_obj.empty?
-
-      # Build artifact config
+      
+      # Build artifact config (part of SpaceConfig)
       artifact_config = {}
       
       if config[:auto_transcribe]
@@ -96,8 +95,11 @@ module SlackMeet
           autoSmartNotesGeneration: config[:smart_notes] ? 'ON' : 'OFF'
         }
       end
-
-      space_config[:artifactConfig] = artifact_config unless artifact_config.empty?
+      
+      config_obj[:artifactConfig] = artifact_config unless artifact_config.empty?
+      
+      # Only add config to space if there are settings
+      space_config[:config] = config_obj unless config_obj.empty?
 
       space_config
     end

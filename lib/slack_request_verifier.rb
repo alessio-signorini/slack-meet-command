@@ -15,10 +15,11 @@ module SlackMeet
     # Verify a Slack request signature
     #
     # @param request [Rack::Request] The request to verify
+    # @param raw_body [String] The raw request body (must be provided before Sinatra parses it)
     # @param signing_secret [String] Slack signing secret
     # @raise [SlackVerificationError] If verification fails
     # @return [void]
-    def self.verify!(request, signing_secret:)
+    def self.verify!(request, raw_body:, signing_secret:)
       timestamp = request.env['HTTP_X_SLACK_REQUEST_TIMESTAMP']
       signature = request.env['HTTP_X_SLACK_SIGNATURE']
       
@@ -26,10 +27,7 @@ module SlackMeet
       raise Errors::SlackVerificationError, 'Missing signature header' unless signature
       
       verify_timestamp!(timestamp)
-      verify_signature!(request.body.read, timestamp, signature, signing_secret)
-      
-      # Reset body for subsequent reads
-      request.body.rewind
+      verify_signature!(raw_body, timestamp, signature, signing_secret)
     end
 
     # Verify the timestamp is within acceptable age

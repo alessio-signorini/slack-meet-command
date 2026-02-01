@@ -37,6 +37,13 @@ module SlackMeet
     # @param meeting_uri [String] Google Meet link
     # @return [Hash] Block Kit message
     def meeting_created_message(meeting_name:, meeting_uri:)
+      # Only show title if it's not the default
+      text = if meeting_name == 'New Meeting'
+        ":google-meet: #{meeting_uri}"
+      else
+        ":google-meet: *#{meeting_name}* #{meeting_uri}"
+      end
+      
       {
         response_type: 'in_channel',
         replace_original: true,
@@ -45,7 +52,7 @@ module SlackMeet
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: "🎥 *#{meeting_name}*\n#{meeting_uri}"
+              text: text
             }
           },
           {

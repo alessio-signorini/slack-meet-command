@@ -9,37 +9,35 @@ module SlackMeet
   # @example
   #   client = GoogleAuthClient.new(
   #     client_id: ENV['GOOGLE_CLIENT_ID'],
-  #     client_secret: ENV['GOOGLE_CLIENT_SECRET'],
-  #     redirect_uri: "#{ENV['APP_URL']}/auth/google/callback"
+  #     client_secret: ENV['GOOGLE_CLIENT_SECRET']
   #   )
-  #   url = client.authorization_url(state: 'encoded_state')
+  #   url = client.authorization_url(state: 'encoded_state', redirect_uri: 'https://example.com/callback')
   #
   class GoogleAuthClient
     OAUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'.freeze
     TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'.freeze
     SCOPE = 'https://www.googleapis.com/auth/meetings.space.created'.freeze
 
-    attr_reader :client_id, :client_secret, :redirect_uri
+    attr_reader :client_id, :client_secret
 
     # Initialize the OAuth client
     #
     # @param client_id [String] Google OAuth client ID
     # @param client_secret [String] Google OAuth client secret
-    # @param redirect_uri [String] OAuth redirect URI
-    def initialize(client_id:, client_secret:, redirect_uri:)
+    def initialize(client_id:, client_secret:)
       @client_id = client_id
       @client_secret = client_secret
-      @redirect_uri = redirect_uri
     end
 
     # Generate OAuth authorization URL
     #
     # @param state [String] State parameter for CSRF protection
+    # @param redirect_uri [String] OAuth redirect URI
     # @return [String] Authorization URL
-    def authorization_url(state:)
+    def authorization_url(state:, redirect_uri:)
       params = {
         client_id: @client_id,
-        redirect_uri: @redirect_uri,
+        redirect_uri: redirect_uri,
         response_type: 'code',
         scope: SCOPE,
         access_type: 'offline',
