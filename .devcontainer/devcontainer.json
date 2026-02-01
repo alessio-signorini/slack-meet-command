@@ -9,7 +9,6 @@
     "vscode": {
       "extensions": [
         "Shopify.ruby-lsp",
-        "rebornix.ruby",
         "alexcvzz.vscode-sqlite",
         "humao.rest-client"
       ],
@@ -19,8 +18,17 @@
       }
     }
   },
-  "forwardPorts": [9292],
+  "forwardPorts": [
+    8080
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "Application",
+      "onAutoForward": "notify"
+    }
+  },
   "remoteEnv": {
+    "PORT": "8080",
     "RACK_ENV": "development"
   }
 }

@@ -26,8 +26,8 @@ This devcontainer provides a complete Ruby development environment for the Slack
 # Start the server
 bundle exec puma -p 9292
 
-# Or use rackup
-bundle exec rackup -p 9292
+# Start the server
+bundle exec puma -C config/puma.rb
 ```
 
 The app will be available at http://localhost:9292
@@ -67,7 +67,6 @@ Required variables:
 - `SLACK_SIGNING_SECRET` - From Slack app settings
 - `GOOGLE_CLIENT_ID` - From Google Cloud Console
 - `GOOGLE_CLIENT_SECRET` - From Google Cloud Console
-- `APP_URL` - Your app's public URL (use ngrok for local dev)
 - `SESSION_SECRET` - Generate with `ruby -e "require 'securerandom'; puts SecureRandom.hex(64)"`
 
 ## Local Development with Slack
