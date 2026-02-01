@@ -10,7 +10,8 @@
       "extensions": [
         "Shopify.ruby-lsp",
         "alexcvzz.vscode-sqlite",
-        "humao.rest-client"
+        "humao.rest-client",
+        "github.copilot-chat"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -30,5 +31,8 @@
   "remoteEnv": {
     "PORT": "8080",
     "RACK_ENV": "development"
-  }
+  },
+  "mounts": [
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh/host,type=bind,consistency=cached"
+  ]
 }
