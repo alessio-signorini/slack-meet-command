@@ -23,7 +23,7 @@ configure do
   disable :method_override
   
   # Enable static file serving from public folder
-  set :public_folder, File.expand_path('public', __dir__)
+  set :public_folder, File.expand_path('../public', __FILE__)
   set :static, true
   set :static_cache_control, [:public, max_age: 31536000] # Cache for 1 year
   
