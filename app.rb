@@ -14,6 +14,26 @@ require_relative 'app/services/meet_command_handler'
 require_relative 'app/services/google_auth_handler'
 require_relative 'db/connection'
 
+# Performance optimizations for Sinatra
+configure do
+  # Disable X-Cascade header for speed
+  set :x_cascade, false
+  
+  # Disable method override for slight speed gain
+  disable :method_override
+  
+  # Disable static file serving (use reverse proxy in production)
+  set :static, false if ENV.fetch('RACK_ENV', 'development') == 'production'
+  
+  # Reduce session overhead (we don't use sessions)
+  disable :sessions
+  
+  # Enable gzip compression
+  use Rack::Deflater, if: ->(env, _status, _headers, _body) {
+    env['PATH_INFO'] !~ /\.(png|jpg|jpeg|gif|svg|ico)$/
+  }
+end
+
 # Initialize dependencies
 LOGGER = SlackMeet::LoggerFactory.create
 CONFIG = SlackMeet::Configuration.load
@@ -189,6 +209,28 @@ get '/auth/google/callback' do
       user_id: state_data[:slack_user_id],
       team_id: state_data[:slack_team_id]
     )
+    
+    # Send confirmation message to Slack if we have a pending response_url
+    response_url = TOKEN_STORE.get_and_clear_pending_response_url(state_data[:slack_user_id])
+    LOGGER.info(message: 'OAuth callback complete', slack_user_id: state_data[:slack_user_id], has_response_url: !response_url.nil?)
+    
+    if response_url
+      confirmation_message = {
+        response_type: 'ephemeral',
+        replace_original: true,
+        text: '✅ Google account connected! Run `/meet` to create your first meeting.'
+      }
+      
+      begin
+        SLACK_RESPONDER.post_to_response_url(
+          response_url: response_url,
+          payload: confirmation_message
+        )
+        LOGGER.info(message: 'Posted OAuth confirmation to Slack', slack_user_id: state_data[:slack_user_id])
+      rescue StandardError => e
+        LOGGER.error(message: 'Failed to post OAuth confirmation', error: e.message, slack_user_id: state_data[:slack_user_id])
+      end
+    end
     
     # Redirect to success page
     redirect '/auth/success'
