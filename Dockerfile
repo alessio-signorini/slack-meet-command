@@ -9,8 +9,5 @@ RUN bundle install --without development test
 
 COPY . .
 
-# Run migrations on startup
-RUN bundle exec rake db:migrate
-
 EXPOSE 8080
-CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]
+CMD ["./startup.sh"]

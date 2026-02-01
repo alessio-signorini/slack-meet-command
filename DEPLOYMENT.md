@@ -125,7 +125,6 @@ fly secrets set \
   SLACK_SIGNING_SECRET="your_slack_signing_secret" \
   GOOGLE_CLIENT_ID="your_google_client_id" \
   GOOGLE_CLIENT_SECRET="your_google_client_secret" \
-  APP_URL="https://YOUR_APP_NAME.fly.dev" \
   SESSION_SECRET="$SESSION_SECRET" \
   DATABASE_URL="sqlite:///data/production.sqlite3"
 ```
