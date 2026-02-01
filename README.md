@@ -1,6 +1,16 @@
-# Slack /meet Command
+# Slack Meet Command
 
 A Ruby/Sinatra application that creates Google Meet links via Slack slash commands.
+
+<p align="center">
+  <a href="https://slack-meet-command.signorini.dev">
+    <img src="public/screenshot.png" alt="Slack Meet Command Screenshot" width="600" style="border: 1px solid #ddd;">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://slack-meet-command.signorini.dev">Homepage</a>
+</p>
 
 ## Features
 
