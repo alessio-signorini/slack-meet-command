@@ -120,5 +120,39 @@ module SlackMeet
         token.google_access_token
       end
     end
+
+    # Store pending response URL for later use after OAuth
+    #
+    # @param slack_user_id [String] Slack user ID
+    # @param slack_team_id [String] Slack team ID
+    # @param response_url [String] Slack response URL
+    def store_pending_response_url(slack_user_id:, slack_team_id:, response_url:)
+      existing = find_by_slack_user(slack_user_id)
+      
+      if existing
+        existing.update(pending_response_url: response_url)
+      else
+        # Create a placeholder record with just the response_url
+        UserToken.create(
+          slack_user_id: slack_user_id,
+          slack_team_id: slack_team_id,
+          google_access_token: '',
+          pending_response_url: response_url
+        )
+      end
+    end
+
+    # Get and clear pending response URL
+    #
+    # @param slack_user_id [String] Slack user ID
+    # @return [String, nil] The pending response URL or nil
+    def get_and_clear_pending_response_url(slack_user_id)
+      token = find_by_slack_user(slack_user_id)
+      return nil unless token
+      
+      response_url = token.pending_response_url
+      token.update(pending_response_url: nil) if response_url
+      response_url
+    end
   end
 end
