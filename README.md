@@ -33,7 +33,6 @@ A Ruby/Sinatra application that creates Google Meet links via Slack slash comman
    SLACK_SIGNING_SECRET=<from Slack app>
    GOOGLE_CLIENT_ID=<from Google Cloud>
    GOOGLE_CLIENT_SECRET=<from Google Cloud>
-   APP_URL=http://localhost:9292
    SESSION_SECRET=<generate with: ruby -e "require 'securerandom'; puts SecureRandom.hex(64)">
    ```
 
@@ -49,7 +48,7 @@ A Ruby/Sinatra application that creates Google Meet links via Slack slash comman
 
 5. **Start server**:
    ```bash
-   bundle exec rackup -p 9292
+   bundle exec puma -C config/puma.rb
    ```
 
 6. **Run tests**:

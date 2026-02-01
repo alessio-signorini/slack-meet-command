@@ -787,7 +787,6 @@ bundle exec rake test TESTOPTS="--verbose"
 | `SLACK_SIGNING_SECRET` | Slack app signing secret | `abc123...` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | `123...apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `GOCSPX-...` |
-| `APP_URL` | Public URL of the app | `https://slack-meet.fly.dev` |
 | `SESSION_SECRET` | Secret for session encryption | `64-char-random-hex` |
 
 ### Optional Variables
@@ -813,7 +812,6 @@ GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 # Application Configuration
-APP_URL=http://localhost:9292
 SESSION_SECRET=generate_with_ruby_securerandom_hex_64
 DATABASE_URL=sqlite://db/development.sqlite3
 RACK_ENV=development
@@ -1438,7 +1436,6 @@ fly secrets set \
   SLACK_SIGNING_SECRET="your_slack_signing_secret" \
   GOOGLE_CLIENT_ID="your_google_client_id" \
   GOOGLE_CLIENT_SECRET="your_google_client_secret" \
-  APP_URL="https://YOUR_APP_NAME.fly.dev" \
   SESSION_SECRET="$SESSION_SECRET" \
   DATABASE_URL="sqlite:///data/production.sqlite3"
 ```
