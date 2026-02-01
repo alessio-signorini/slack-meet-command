@@ -1,0 +1,40 @@
+<div class="section">
+  <div class="error-box">
+    <h2>⚠️ Authentication Failed</h2>
+    <p><strong><%= @error_message %></strong></p>
+    <% if @error_details %>
+    <p style="margin-top: 10px;"><%= @error_details %></p>
+    <% end %>
+  </div>
+</div>
+
+<div class="section">
+  <h2>What you can do</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h3>Try again</h3>
+        <p>Go back to Slack and run the <code>/meet</code> command again. Make sure to click "Allow" when Google asks for permission.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h3>Check permissions</h3>
+        <p>The app only needs permission to create Google Meet spaces. It cannot access your calendar, emails, or other Google data.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <h3>Need help?</h3>
+        <p>If the problem persists, contact your workspace administrator or check your Google account security settings.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 32px;">
+  <a href="/" class="back-link">← Back to homepage</a>
+</div>
