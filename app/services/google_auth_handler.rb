@@ -26,24 +26,26 @@ module SlackMeet
     #
     # @param slack_user_id [String] Slack user ID
     # @param slack_team_id [String] Slack team ID
+    # @param redirect_uri [String] OAuth redirect URI
     # @return [String] Authorization URL
-    def authorization_url(slack_user_id:, slack_team_id:)
+    def authorization_url(slack_user_id:, slack_team_id:, redirect_uri:)
       state = encode_state(slack_user_id: slack_user_id, slack_team_id: slack_team_id)
-      @google_auth_client.authorization_url(state: state)
+      @google_auth_client.authorization_url(state: state, redirect_uri: redirect_uri)
     end
 
     # Handle OAuth callback
     #
     # @param code [String] Authorization code
     # @param state [String] State parameter
+    # @param redirect_uri [String] OAuth redirect URI
     # @return [Hash] State data with :slack_user_id, :slack_team_id
     # @raise [GoogleApiError] If code exchange fails
-    def handle_callback(code:, state:)
+    def handle_callback(code:, state:, redirect_uri:)
       state_data = decode_state(state)
       
       result = @google_auth_client.exchange_code(
         code: code,
-        redirect_uri: @google_auth_client.redirect_uri
+        redirect_uri: redirect_uri
       )
       
       expires_at = Time.now + result[:expires_in]

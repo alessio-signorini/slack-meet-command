@@ -8,6 +8,7 @@ require_relative 'lib/google_auth_client'
 require_relative 'lib/google_meet_client'
 require_relative 'lib/token_store'
 require_relative 'lib/async_job_runner'
+require_relative 'lib/google_analytics_client'
 require_relative 'app/services/meeting_creator'
 require_relative 'app/services/meet_command_handler'
 require_relative 'app/services/google_auth_handler'
@@ -17,10 +18,15 @@ require_relative 'db/connection'
 LOGGER = SlackMeet::LoggerFactory.create
 CONFIG = SlackMeet::Configuration.load
 
+GA_CLIENT = SlackMeet::GoogleAnalyticsClient.new(
+  measurement_id: ENV['GA_MEASUREMENT_ID'],
+  api_secret: ENV['GA_API_SECRET'],
+  logger: LOGGER
+)
+
 GOOGLE_AUTH_CLIENT = SlackMeet::GoogleAuthClient.new(
   client_id: ENV.fetch('GOOGLE_CLIENT_ID'),
-  client_secret: ENV.fetch('GOOGLE_CLIENT_SECRET'),
-  redirect_uri: "#{ENV.fetch('APP_URL')}/auth/google/callback"
+  client_secret: ENV.fetch('GOOGLE_CLIENT_SECRET')
 )
 
 GOOGLE_MEET_CLIENT = SlackMeet::GoogleMeetClient.new
@@ -38,7 +44,8 @@ MEET_COMMAND_HANDLER = SlackMeet::MeetCommandHandler.new(
   slack_responder: SLACK_RESPONDER,
   google_auth_client: GOOGLE_AUTH_CLIENT,
   async_job_runner: SlackMeet::AsyncJobRunner,
-  logger: LOGGER
+  logger: LOGGER,
+  ga_client: GA_CLIENT
 )
 
 GOOGLE_AUTH_HANDLER = SlackMeet::GoogleAuthHandler.new(
@@ -57,20 +64,80 @@ error do
   halt 500, 'Internal Server Error'
 end
 
+# Disable frame protection for homepage so it can be viewed in browsers/iframes
+set :protection, except: [:frame_options]
+
+# Helper method to infer base URL from request
+helpers do
+  def base_url
+    "#{request.scheme}://#{request.host_with_port}"
+  end
+end
+
+# Homepage
+get '/' do
+  erb :homepage
+end
+
+# Terms of Service
+get '/terms-of-service' do
+  erb :terms_of_service
+end
+
+# Privacy Policy
+get '/privacy-policy' do
+  erb :privacy_policy
+end
+
+# OAuth Success
+get '/auth/success' do
+  erb :oauth_success
+end
+
+# OAuth Error
+get '/auth/error' do
+  erb :oauth_error
+end
+
 # Health check endpoint
 get '/health' do
   content_type :json
   { status: 'ok', timestamp: Time.now.utc.iso8601 }.to_json
 end
 
+# Capture raw body before Sinatra processes it (for signature verification)
+before '/slack/*' do
+  request.body.rewind
+  @raw_body = request.body.read
+  request.body.rewind
+end
+
 # Slack /meet command endpoint
 post '/slack/meet' do
-  SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: ENV.fetch('SLACK_SIGNING_SECRET'))
+  # Verify signature with raw body
+  SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @raw_body, signing_secret: ENV.fetch('SLACK_SIGNING_SECRET'))
   
-  result = MEET_COMMAND_HANDLER.call(params)
+  result = MEET_COMMAND_HANDLER.call(params, base_url: base_url)
   
   content_type :json
   result.to_json
+end
+
+# Slack interactive components (button clicks)
+post '/slack/interactive' do
+  # Verify signature with raw body
+  SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @raw_body, signing_secret: ENV.fetch('SLACK_SIGNING_SECRET'))
+  
+  # Slack sends the payload as form-encoded with a 'payload' parameter
+  payload = JSON.parse(params['payload'])
+  
+  # Log the interaction for debugging
+  LOGGER.info(message: 'Interactive component received', type: payload['type'], action: payload.dig('actions', 0, 'action_id'))
+  
+  # For button clicks, we don't need to do anything - the meeting link is already in the message
+  # Just acknowledge the interaction
+  content_type :json
+  {}.to_json
 end
 
 # Google OAuth initiation
@@ -80,9 +147,11 @@ get '/auth/google' do
   
   state_data = JSON.parse(Base64.urlsafe_decode64(state))
   
+  redirect_uri = "#{base_url}/auth/google/callback"
   auth_url = GOOGLE_AUTH_HANDLER.authorization_url(
     slack_user_id: state_data['slack_user_id'],
-    slack_team_id: state_data['slack_team_id']
+    slack_team_id: state_data['slack_team_id'],
+    redirect_uri: redirect_uri
   )
   
   redirect auth_url
@@ -95,37 +164,43 @@ get '/auth/google/callback' do
   error_param = params['error']
   
   if error_param
-    halt 400, "OAuth error: #{error_param}"
+    @error_message = case error_param
+    when 'access_denied'
+      'You cancelled the authentication process.'
+    else
+      "Authentication error: #{error_param}"
+    end
+    @error_details = 'To use the /meet command, you need to connect your Google account.'
+    return erb :oauth_error
   end
   
-  halt 400, 'Missing code parameter' unless code
-  halt 400, 'Missing state parameter' unless state
+  unless code && state
+    @error_message = 'Invalid authentication response.'
+    @error_details = 'Please try running the /meet command in Slack again.'
+    return erb :oauth_error
+  end
   
-  GOOGLE_AUTH_HANDLER.handle_callback(code: code, state: state)
+  begin
+    redirect_uri = "#{base_url}/auth/google/callback"
+    state_data = GOOGLE_AUTH_HANDLER.handle_callback(code: code, state: state, redirect_uri: redirect_uri)
   
-  <<~HTML
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Authentication Successful</title>
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-               text-align: center; padding: 50px; background: #f5f5f5; }
-        .container { background: white; max-width: 500px; margin: 0 auto; padding: 40px; 
-                     border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2eb67d; margin-bottom: 20px; }
-        p { color: #666; line-height: 1.6; }
-        .success-icon { font-size: 64px; margin-bottom: 20px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="success-icon">✓</div>
-        <h1>Authentication Successful!</h1>
-        <p>Your Google account has been connected.</p>
-        <p>You can now close this window and return to Slack to use the <code>/meet</code> command.</p>
-      </div>
-    </body>
-    </html>
-  HTML
+    # Track authentication completion with hashed user identifier
+    GA_CLIENT.track_auth_completed(
+      user_id: state_data[:slack_user_id],
+      team_id: state_data[:slack_team_id]
+    )
+    
+    # Redirect to success page
+    redirect '/auth/success'
+  rescue SlackMeet::Errors::GoogleApiError => e
+    LOGGER.error(message: 'OAuth callback failed', error: e.message)
+    @error_message = 'Failed to connect your Google account.'
+    @error_details = 'Please try again. If the problem persists, contact your administrator.'
+    erb :oauth_error
+  rescue StandardError => e
+    LOGGER.error(message: 'Unexpected OAuth error', error: e.message)
+    @error_message = 'Something went wrong during authentication.'
+    @error_details = 'Please try running the /meet command in Slack again.'
+    erb :oauth_error
+  end
 end

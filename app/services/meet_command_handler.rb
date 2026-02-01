@@ -26,20 +26,23 @@ module SlackMeet
     # @param google_auth_client [GoogleAuthClient] Google OAuth client
     # @param async_job_runner [Class] Async job runner class
     # @param logger [Logger] Logger instance
-    def initialize(token_store:, meeting_creator:, slack_responder:, google_auth_client:, async_job_runner:, logger:)
+    # @param ga_client [GoogleAnalyticsClient, nil] Optional Google Analytics client
+    def initialize(token_store:, meeting_creator:, slack_responder:, google_auth_client:, async_job_runner:, logger:, ga_client: nil)
       @token_store = token_store
       @meeting_creator = meeting_creator
       @slack_responder = slack_responder
       @google_auth_client = google_auth_client
       @async_job_runner = async_job_runner
       @logger = logger
+      @ga_client = ga_client
     end
 
     # Handle /meet command
     #
     # @param params [Hash] Request parameters from Slack
+    # @param base_url [String] Base URL of the application (inferred from request)
     # @return [Hash] Immediate acknowledgment message
-    def call(params)
+    def call(params, base_url:)
       slack_user_id = params['user_id']
       slack_team_id = params['team_id']
       response_url = params['response_url']
@@ -49,13 +52,13 @@ module SlackMeet
       token = @token_store.find_by_slack_user(slack_user_id)
       
       unless token
-        auth_url = build_auth_url(slack_user_id, slack_team_id)
+        auth_url = build_auth_url(slack_user_id, slack_team_id, base_url)
         return @slack_responder.auth_required_message(auth_url: auth_url)
       end
       
       # Spawn async job to create meeting
       @async_job_runner.perform_async(logger: @logger) do
-        process_meeting_creation(token, meeting_name, response_url)
+        process_meeting_creation(token, meeting_name, response_url, base_url)
       end
       
       @slack_responder.immediate_acknowledgment
@@ -63,16 +66,16 @@ module SlackMeet
 
     private
 
-    def build_auth_url(slack_user_id, slack_team_id)
+    def build_auth_url(slack_user_id, slack_team_id, base_url)
       state = Base64.urlsafe_encode64(JSON.generate({
         slack_user_id: slack_user_id,
         slack_team_id: slack_team_id
       }))
       
-      "#{ENV['APP_URL']}/auth/google?state=#{state}"
+      "#{base_url}/auth/google?state=#{state}"
     end
 
-    def process_meeting_creation(token, meeting_name, response_url)
+    def process_meeting_creation(token, meeting_name, response_url, base_url)
       # Refresh token if needed
       access_token = @token_store.refresh_if_needed(
         token.slack_user_id,
@@ -96,6 +99,13 @@ module SlackMeet
         payload: message
       )
       
+      # Track /meet command usage (only track if title was provided, not the title itself)
+      @ga_client&.track_meet_command_used(
+        has_title: !meeting_name.nil? && !meeting_name.strip.empty?,
+        user_id: token.slack_user_id,
+        team_id: token.slack_team_id
+      )
+      
       @logger.info(message: 'Meeting created', meeting_code: result[:meeting_code], user_id: token.slack_user_id)
     rescue Errors::TokenRefreshError => e
       @logger.warn(message: 'Token refresh failed', user_id: token.slack_user_id, error: e.message)
@@ -104,7 +114,7 @@ module SlackMeet
       @token_store.delete_for_user(token.slack_user_id)
       
       # Prompt re-auth
-      auth_url = build_auth_url(token.slack_user_id, token.slack_team_id)
+      auth_url = build_auth_url(token.slack_user_id, token.slack_team_id, base_url)
       message = @slack_responder.auth_required_message(auth_url: auth_url)
       
       @slack_responder.post_to_response_url(
@@ -114,9 +124,21 @@ module SlackMeet
     rescue Errors::GoogleApiError => e
       @logger.error(message: 'Google API error', error: e.message, status_code: e.status_code)
       
-      message = @slack_responder.error_message(
-        text: '❌ Failed to create meeting. Please try again.'
-      )
+      # Check if this is an authentication error (401)
+      if e.status_code == 401
+        @logger.warn(message: 'Token invalid or revoked', user_id: token.slack_user_id)
+        
+        # Delete invalid tokens
+        @token_store.delete_for_user(token.slack_user_id)
+        
+        # Prompt re-auth
+        auth_url = build_auth_url(token.slack_user_id, token.slack_team_id, base_url)
+        message = @slack_responder.auth_required_message(auth_url: auth_url)
+      else
+        message = @slack_responder.error_message(
+          text: '❌ Failed to create meeting. Please try again.'
+        )
+      end
       
       @slack_responder.post_to_response_url(
         response_url: response_url,
