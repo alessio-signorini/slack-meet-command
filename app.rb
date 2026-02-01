@@ -22,8 +22,10 @@ configure do
   # Disable method override for slight speed gain
   disable :method_override
   
-  # Disable static file serving (use reverse proxy in production)
-  set :static, false if ENV.fetch('RACK_ENV', 'development') == 'production'
+  # Enable static file serving from public folder
+  set :public_folder, File.expand_path('public', __dir__)
+  set :static, true
+  set :static_cache_control, [:public, max_age: 31536000] # Cache for 1 year
   
   # Reduce session overhead (we don't use sessions)
   disable :sessions
