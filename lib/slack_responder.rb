@@ -46,7 +46,6 @@ module SlackMeet
       
       {
         response_type: 'in_channel',
-        replace_original: true,
         blocks: [
           {
             type: 'section',
@@ -54,21 +53,6 @@ module SlackMeet
               type: 'mrkdwn',
               text: text
             }
-          },
-          {
-            type: 'actions',
-            elements: [
-              {
-                type: 'button',
-                text: {
-                  type: 'plain_text',
-                  text: 'Join Meeting',
-                  emoji: true
-                },
-                url: meeting_uri,
-                style: 'primary'
-              }
-            ]
           }
         ]
       }
@@ -81,13 +65,13 @@ module SlackMeet
     def auth_required_message(auth_url:)
       {
         response_type: 'ephemeral',
-        text: '🔐 Please connect your Google account to create meetings.',
+        text: "🔐 Click below to authorize this app to create *Google Meet* links on your behalf.",
         blocks: [
           {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: '🔐 Please connect your Google account to create meetings.'
+              text: "🔐 Click below to authorize this app to create *Google Meet* links on your behalf."
             }
           },
           {

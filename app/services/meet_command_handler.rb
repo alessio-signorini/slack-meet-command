@@ -52,8 +52,7 @@ module SlackMeet
       token = @token_store.find_by_slack_user(slack_user_id)
       
       unless token
-        auth_url = build_auth_url(slack_user_id, slack_team_id, base_url)
-        return @slack_responder.auth_required_message(auth_url: auth_url)
+        return handle_auth_required(slack_user_id, slack_team_id, response_url, base_url)
       end
       
       # Spawn async job to create meeting
@@ -65,6 +64,25 @@ module SlackMeet
     end
 
     private
+
+    # Handle authentication requirement - used for both initial auth and re-auth
+    #
+    # @param slack_user_id [String] Slack user ID
+    # @param slack_team_id [String] Slack team ID
+    # @param response_url [String] Slack response URL
+    # @param base_url [String] Base URL of the application
+    # @return [Hash] Auth required message
+    def handle_auth_required(slack_user_id, slack_team_id, response_url, base_url)
+      # Store response_url for later use after OAuth
+      @token_store.store_pending_response_url(
+        slack_user_id: slack_user_id,
+        slack_team_id: slack_team_id,
+        response_url: response_url
+      )
+      
+      auth_url = build_auth_url(slack_user_id, slack_team_id, base_url)
+      @slack_responder.auth_required_message(auth_url: auth_url)
+    end
 
     def build_auth_url(slack_user_id, slack_team_id, base_url)
       state = Base64.urlsafe_encode64(JSON.generate({
@@ -88,7 +106,10 @@ module SlackMeet
         meeting_name: meeting_name
       )
       
-      # Post result to Slack
+      # Clear any pending response_url (from auth flow)
+      @token_store.get_and_clear_pending_response_url(token.slack_user_id)
+      
+      # Post the meeting link to the channel
       message = @slack_responder.meeting_created_message(
         meeting_name: result[:meeting_name],
         meeting_uri: result[:meeting_uri]
@@ -113,9 +134,8 @@ module SlackMeet
       # Delete invalid tokens
       @token_store.delete_for_user(token.slack_user_id)
       
-      # Prompt re-auth
-      auth_url = build_auth_url(token.slack_user_id, token.slack_team_id, base_url)
-      message = @slack_responder.auth_required_message(auth_url: auth_url)
+      # Use the same auth handling as initial auth
+      message = handle_auth_required(token.slack_user_id, token.slack_team_id, response_url, base_url)
       
       @slack_responder.post_to_response_url(
         response_url: response_url,
@@ -131,9 +151,8 @@ module SlackMeet
         # Delete invalid tokens
         @token_store.delete_for_user(token.slack_user_id)
         
-        # Prompt re-auth
-        auth_url = build_auth_url(token.slack_user_id, token.slack_team_id, base_url)
-        message = @slack_responder.auth_required_message(auth_url: auth_url)
+        # Use the same auth handling as initial auth
+        message = handle_auth_required(token.slack_user_id, token.slack_team_id, response_url, base_url)
       else
         message = @slack_responder.error_message(
           text: '❌ Failed to create meeting. Please try again.'
