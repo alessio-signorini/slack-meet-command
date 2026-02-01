@@ -5,37 +5,37 @@ class Req020GoogleOauthTest < Minitest::Test
   def setup
     @client = SlackMeet::GoogleAuthClient.new(
       client_id: 'test_client_id.apps.googleusercontent.com',
-      client_secret: 'test_client_secret',
-      redirect_uri: 'http://localhost:9292/auth/google/callback'
+      client_secret: 'test_client_secret'
     )
+    @redirect_uri = 'http://localhost:9292/auth/google/callback'
   end
 
   def test_authorization_url_includes_correct_scopes
-    url = @client.authorization_url(state: 'test_state')
+    url = @client.authorization_url(state: 'test_state', redirect_uri: @redirect_uri)
 
     assert_match(/scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fmeetings.space.created/, url)
   end
 
   def test_authorization_url_includes_offline_access
-    url = @client.authorization_url(state: 'test_state')
+    url = @client.authorization_url(state: 'test_state', redirect_uri: @redirect_uri)
 
     assert_match(/access_type=offline/, url)
   end
 
   def test_authorization_url_includes_consent_prompt
-    url = @client.authorization_url(state: 'test_state')
+    url = @client.authorization_url(state: 'test_state', redirect_uri: @redirect_uri)
 
     assert_match(/prompt=consent/, url)
   end
 
   def test_authorization_url_includes_state
-    url = @client.authorization_url(state: 'encoded_user_data')
+    url = @client.authorization_url(state: 'encoded_user_data', redirect_uri: @redirect_uri)
 
     assert_match(/state=encoded_user_data/, url)
   end
 
   def test_authorization_url_includes_client_id
-    url = @client.authorization_url(state: 'test')
+    url = @client.authorization_url(state: 'test', redirect_uri: @redirect_uri)
 
     assert_match(/client_id=test_client_id/, url)
   end
@@ -49,7 +49,7 @@ class Req020GoogleOauthTest < Minitest::Test
 
     result = @client.exchange_code(
       code: 'test_code',
-      redirect_uri: @client.redirect_uri
+      redirect_uri: @redirect_uri
     )
 
     assert_equal 'ya29.test_access', result[:access_token]
@@ -63,7 +63,7 @@ class Req020GoogleOauthTest < Minitest::Test
       .to_return(status: 400, body: '{"error": "invalid_grant"}')
 
     error = assert_raises(SlackMeet::Errors::GoogleApiError) do
-      @client.exchange_code(code: 'bad_code', redirect_uri: @client.redirect_uri)
+      @client.exchange_code(code: 'bad_code', redirect_uri: @redirect_uri)
     end
 
     assert_match(/Token request failed/, error.message)

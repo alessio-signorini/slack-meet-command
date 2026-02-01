@@ -15,14 +15,14 @@ class Req030SignatureVerificationTest < Minitest::Test
     request = build_request(@body, @timestamp, @signing_secret)
     
     # Should not raise
-    SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: @signing_secret)
+    SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @body, signing_secret: @signing_secret)
   end
 
   def test_invalid_signature_raises_error
     request = build_request(@body, @timestamp, 'wrong_secret')
     
     error = assert_raises(SlackMeet::Errors::SlackVerificationError) do
-      SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: @signing_secret)
+      SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @body, signing_secret: @signing_secret)
     end
     
     assert_match(/Invalid signature/, error.message)
@@ -33,7 +33,7 @@ class Req030SignatureVerificationTest < Minitest::Test
     request = build_request(@body, old_timestamp, @signing_secret)
     
     error = assert_raises(SlackMeet::Errors::SlackVerificationError) do
-      SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: @signing_secret)
+      SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @body, signing_secret: @signing_secret)
     end
     
     assert_match(/too old/, error.message)
@@ -44,7 +44,7 @@ class Req030SignatureVerificationTest < Minitest::Test
     request = build_request(@body, future_timestamp, @signing_secret)
     
     error = assert_raises(SlackMeet::Errors::SlackVerificationError) do
-      SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: @signing_secret)
+      SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @body, signing_secret: @signing_secret)
     end
     
     assert_match(/too old/, error.message)
@@ -58,7 +58,7 @@ class Req030SignatureVerificationTest < Minitest::Test
     request = Rack::Request.new(env)
     
     error = assert_raises(SlackMeet::Errors::SlackVerificationError) do
-      SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: @signing_secret)
+      SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @body, signing_secret: @signing_secret)
     end
     
     assert_match(/Missing timestamp/, error.message)
@@ -72,7 +72,7 @@ class Req030SignatureVerificationTest < Minitest::Test
     request = Rack::Request.new(env)
     
     error = assert_raises(SlackMeet::Errors::SlackVerificationError) do
-      SlackMeet::SlackRequestVerifier.verify!(request, signing_secret: @signing_secret)
+      SlackMeet::SlackRequestVerifier.verify!(request, raw_body: @body, signing_secret: @signing_secret)
     end
     
     assert_match(/Missing signature/, error.message)
