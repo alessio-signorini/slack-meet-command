@@ -6,10 +6,12 @@ require 'json'
 class LoggerFactoryTest < Minitest::Test
   def setup
     @original_env = ENV['RACK_ENV']
+    @original_log_level = ENV['LOG_LEVEL']
   end
 
   def teardown
     ENV['RACK_ENV'] = @original_env
+    ENV['LOG_LEVEL'] = @original_log_level
   end
 
   def test_creates_logger_instance
@@ -86,6 +88,7 @@ class LoggerFactoryTest < Minitest::Test
 
   def test_log_level_is_info_in_production
     ENV['RACK_ENV'] = 'production'
+    ENV['LOG_LEVEL'] = nil
     output = StringIO.new
     logger = SlackMeet::LoggerFactory.create(output: output)
 
@@ -93,5 +96,44 @@ class LoggerFactoryTest < Minitest::Test
     result = output.string
 
     assert_equal '', result, 'DEBUG messages should not appear in production'
+  end
+
+  def test_log_level_override_with_env_variable
+    ENV['RACK_ENV'] = 'production'
+    ENV['LOG_LEVEL'] = 'DEBUG'
+    output = StringIO.new
+    logger = SlackMeet::LoggerFactory.create(output: output)
+
+    logger.debug('Debug message')
+    result = output.string
+
+    refute_equal '', result, 'DEBUG messages should appear when LOG_LEVEL=DEBUG'
+  end
+
+  def test_log_level_override_with_warn
+    ENV['RACK_ENV'] = 'development'
+    ENV['LOG_LEVEL'] = 'WARN'
+    output = StringIO.new
+    logger = SlackMeet::LoggerFactory.create(output: output)
+
+    logger.info('Info message')
+    logger.warn('Warning message')
+    result = output.string
+
+    refute_match(/Info message/, result, 'INFO messages should not appear when LOG_LEVEL=WARN')
+    assert_match(/Warning message/, result, 'WARN messages should appear when LOG_LEVEL=WARN')
+  end
+
+  def test_invalid_log_level_falls_back_to_info
+    ENV['LOG_LEVEL'] = 'INVALID'
+    output = StringIO.new
+    logger = SlackMeet::LoggerFactory.create(output: output)
+
+    logger.debug('Debug message')
+    logger.info('Info message')
+    result = output.string
+
+    refute_match(/Debug message/, result, 'DEBUG should not appear with invalid LOG_LEVEL')
+    assert_match(/Info message/, result, 'INFO should appear with fallback to INFO level')
   end
 end

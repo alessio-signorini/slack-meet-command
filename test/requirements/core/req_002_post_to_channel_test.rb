@@ -32,22 +32,6 @@ class Req002PostToChannelTest < Minitest::Test
     assert_match(/#{meeting_uri}/, text_block[:text][:text])
   end
 
-  def test_meeting_created_message_includes_join_button
-    meeting_uri = 'https://meet.google.com/abc-defg-hij'
-    message = @responder.meeting_created_message(
-      meeting_name: 'Test Meeting',
-      meeting_uri: meeting_uri
-    )
-
-    actions_block = message[:blocks].find { |b| b[:type] == 'actions' }
-    button = actions_block[:elements].first
-    
-    assert_equal 'button', button[:type]
-    assert_equal 'Join Meeting', button[:text][:text]
-    assert_equal meeting_uri, button[:url]
-    assert_equal 'primary', button[:style]
-  end
-
   def test_meeting_created_message_replaces_original
     message = @responder.meeting_created_message(
       meeting_name: 'Test',

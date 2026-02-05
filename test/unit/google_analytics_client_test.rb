@@ -1,9 +1,12 @@
 require_relative '../test_helper'
 require_relative '../../lib/google_analytics_client'
+require 'stringio'
 
 class GoogleAnalyticsClientTest < Minitest::Test
   def setup
-    @logger = Minitest::Mock.new
+    @log_output = StringIO.new
+    @logger = Logger.new(@log_output)
+    @logger.level = Logger::DEBUG
   end
 
   def test_disabled_when_no_credentials
@@ -13,11 +16,18 @@ class GoogleAnalyticsClientTest < Minitest::Test
       logger: @logger
     )
     
+    # Check that initialization logs disabled state
+    assert_match(/Google Analytics tracking disabled/, @log_output.string)
+    
+    @log_output.truncate(0)
+    @log_output.rewind
+    
     # Should not make any HTTP requests when disabled
     client.track_meet_command_used(has_title: true, user_id: 'U123', team_id: 'T123')
     client.track_auth_completed(user_id: 'U123', team_id: 'T123')
     
-    # No assertions needed - just ensuring no errors or HTTP calls
+    # Should log that tracking was skipped
+    assert_match(/GA tracking skipped - disabled/, @log_output.string)
   end
 
   def test_disabled_when_empty_credentials
@@ -27,9 +37,24 @@ class GoogleAnalyticsClientTest < Minitest::Test
       logger: @logger
     )
     
+    # Check that initialization logs disabled state
+    assert_match(/Google Analytics tracking disabled/, @log_output.string)
+    
     # Should not make any HTTP requests when disabled
     client.track_meet_command_used(has_title: true, user_id: 'U123', team_id: 'T123')
     client.track_auth_completed(user_id: 'U123', team_id: 'T123')
+  end
+
+  def test_enabled_when_credentials_provided
+    SlackMeet::GoogleAnalyticsClient.new(
+      measurement_id: 'G-TEST123',
+      api_secret: 'test_secret',
+      logger: @logger
+    )
+
+    # Check that initialization logs enabled state
+    assert_match(/Google Analytics tracking enabled/, @log_output.string)
+    assert_match(/G-TEST123/, @log_output.string)
   end
 
   def test_track_meet_command_with_title

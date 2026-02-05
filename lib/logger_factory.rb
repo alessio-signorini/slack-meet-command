@@ -23,13 +23,22 @@ module SlackMeet
       logger
     end
 
-    # Determine log level based on environment
+    # Determine log level based on LOG_LEVEL env variable or RACK_ENV
+    # LOG_LEVEL can be: DEBUG, INFO, WARN, ERROR, FATAL, UNKNOWN
     def self.log_level
-      case ENV['RACK_ENV']
-      when 'production'
-        Logger::INFO
+      if ENV['LOG_LEVEL']
+        begin
+          Logger.const_get(ENV['LOG_LEVEL'].upcase)
+        rescue NameError
+          Logger::INFO # fallback to INFO if invalid level specified
+        end
       else
-        Logger::DEBUG
+        case ENV['RACK_ENV']
+        when 'production'
+          Logger::INFO
+        else
+          Logger::DEBUG
+        end
       end
     end
 

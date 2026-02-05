@@ -24,6 +24,12 @@ module SlackMeet
       @api_secret = api_secret
       @logger = logger
       @enabled = !measurement_id.nil? && !measurement_id.empty? && !api_secret.nil? && !api_secret.empty?
+      
+      if @enabled
+        @logger&.info(message: 'Google Analytics tracking enabled', measurement_id: @measurement_id)
+      else
+        @logger&.info(message: 'Google Analytics tracking disabled', reason: 'GA_MEASUREMENT_ID or GA_API_SECRET not set')
+      end
     end
 
     # Track when a /meet command is used
@@ -32,7 +38,10 @@ module SlackMeet
     # @param user_id [String] Slack user ID (will be hashed)
     # @param team_id [String] Slack team ID (will be hashed)
     def track_meet_command_used(has_title:, user_id:, team_id:)
-      return unless @enabled
+      unless @enabled
+        @logger&.debug(message: 'GA tracking skipped - disabled', event: 'meet_command_used')
+        return
+      end
 
       params = {
         event_name: 'meet_command_used',
@@ -41,6 +50,7 @@ module SlackMeet
         }
       }
 
+      @logger&.debug(message: 'Sending GA event', event: 'meet_command_used', has_title: has_title)
       send_event(params, user_id: user_id, team_id: team_id)
     end
 
@@ -49,7 +59,10 @@ module SlackMeet
     # @param user_id [String] Slack user ID (will be hashed)
     # @param team_id [String] Slack team ID (will be hashed)
     def track_auth_completed(user_id:, team_id:)
-      return unless @enabled
+      unless @enabled
+        @logger&.debug(message: 'GA tracking skipped - disabled', event: 'oauth_completed')
+        return
+      end
 
       params = {
         event_name: 'oauth_completed',
@@ -58,6 +71,7 @@ module SlackMeet
         }
       }
 
+      @logger&.debug(message: 'Sending GA event', event: 'oauth_completed')
       send_event(params, user_id: user_id, team_id: team_id)
     end
 
@@ -83,12 +97,12 @@ module SlackMeet
       )
 
       if response.success?
-        @logger&.debug(message: 'GA4 event sent', event: event_data[:event_name])
+        @logger&.debug(message: 'GA4 event sent successfully', event: event_data[:event_name])
       else
-        @logger&.warn(message: 'GA4 event failed', status: response.code, event: event_data[:event_name])
+        @logger&.warn(message: 'GA4 event failed', status: response.code, event: event_data[:event_name], body: response.body)
       end
     rescue StandardError => e
-      @logger&.error(message: 'GA4 tracking error', error: e.message)
+      @logger&.error(message: 'GA4 tracking error', error: e.message, backtrace: e.backtrace.first(3))
     end
   end
 end

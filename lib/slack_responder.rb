@@ -39,13 +39,14 @@ module SlackMeet
     def meeting_created_message(meeting_name:, meeting_uri:)
       # Only show title if it's not the default
       text = if meeting_name == 'New Meeting'
-        ":google-meet: #{meeting_uri}"
-      else
-        ":google-meet: *#{meeting_name}* #{meeting_uri}"
-      end
-      
+               ":google-meet: #{meeting_uri}"
+             else
+               ":google-meet: *#{meeting_name}* #{meeting_uri}"
+             end
+
       {
         response_type: 'in_channel',
+        replace_original: true,
         blocks: [
           {
             type: 'section',
@@ -65,13 +66,13 @@ module SlackMeet
     def auth_required_message(auth_url:)
       {
         response_type: 'ephemeral',
-        text: "🔐 Click below to authorize this app to create *Google Meet* links on your behalf.",
+        text: '🔐 Click below to authorize this app to create *Google Meet* links on your behalf.',
         blocks: [
           {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: "🔐 Click below to authorize this app to create *Google Meet* links on your behalf."
+              text: '🔐 Click below to authorize this app to create *Google Meet* links on your behalf.'
             }
           },
           {
@@ -125,7 +126,8 @@ module SlackMeet
         @logger.info(message: 'Posted to Slack', response_url: response_url, status: response.code)
         true
       else
-        @logger.error(message: 'Failed to post to Slack', response_url: response_url, status: response.code, body: response.body)
+        @logger.error(message: 'Failed to post to Slack', response_url: response_url, status: response.code,
+                      body: response.body)
         false
       end
     rescue StandardError => e
