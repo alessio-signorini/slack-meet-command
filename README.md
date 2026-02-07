@@ -1,6 +1,6 @@
-# Slack Meet Command
+# 👖 /meet
 
-A Ruby/Sinatra application that creates Google Meet links via Slack slash commands.
+Simple Slack command to create a Google Meet links directly in the chat.
 
 <p align="center">
   <a href="https://slack-meet-command.signorini.dev">
