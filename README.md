@@ -2,15 +2,7 @@
 
 Simple Slack command to create a Google Meet links directly in the chat.
 
-<p align="center">
-  <a href="https://slack-meet-command.signorini.dev">
-    <img src="public/screenshot.png" alt="Slack Meet Command Screenshot" width="600" style="border: 1px solid #ddd;">
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://slack-meet-command.signorini.dev">Homepage</a>
-</p>
+![Screenshot](public/screenshot.png)
 
 ## Features
 
